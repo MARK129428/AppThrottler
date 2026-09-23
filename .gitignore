@@ -1,0 +1,29 @@
+# Build output
+build/
+*.app
+*.dmg
+
+# Xcode
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+DerivedData/
+*.xccheckout
+*.xcscmblueprint
+
+# macOS
+.DS_Store
+*.swp
+*~
+
+# Temporary files
+*.pcap
+*.tmp
+*.log
+
+# Icon build artifacts
+AppIcon.iconset/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved

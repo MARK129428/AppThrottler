@@ -1,0 +1,23 @@
+name: AppThrottler
+options:
+  bundleIdPrefix: com.appthrottler
+  deploymentTarget:
+    macOS: "14.0"
+targets:
+  AppThrottler:
+    type: application
+    platform: macOS
+    sources:
+      - AppThrottler
+    settings:
+      base:
+        PRODUCT_NAME: AppThrottler
+        PRODUCT_BUNDLE_IDENTIFIER: com.appthrottler.app
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_VERSION: "5.9"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        INFOPLIST_KEY_LSUIElement: false
+        ENABLE_HARDENED_RUNTIME: false

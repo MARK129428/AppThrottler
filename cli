@@ -1,0 +1,3 @@
+#!/bin/bash
+# AppThrottler CLI wrapper
+exec ~/Desktop/AppThrottler/build/AppThrottler.app/Contents/MacOS/AppThrottler "$@"

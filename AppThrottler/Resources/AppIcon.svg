@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="triangle" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#000000"/>
+      <stop offset="100%" style="stop-color:#111111"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#0070F3"/>
+      <stop offset="100%" style="stop-color:#0050C8"/>
+    </linearGradient>
+    <clipPath id="round">
+      <rect width="512" height="512" rx="108"/>
+    </clipPath>
+  </defs>
+
+  <!-- White background -->
+  <rect width="512" height="512" rx="108" fill="#FFFFFF"/>
+
+  <!-- Main triangle (Vercel-style) -->
+  <g clip-path="url(#round)">
+    <!-- Centered equilateral triangle pointing up -->
+    <polygon points="256,100 396,370 116,370" fill="url(#triangle)"/>
+
+    <!-- Speed gauge arc across the triangle -->
+    <path d="M 160 310 A 100 100 0 0 1 352 310"
+          fill="none" stroke="#0070F3" stroke-width="8" stroke-linecap="round"/>
+
+    <!-- Gauge ticks -->
+    <line x1="168" y1="295" x2="176" y2="305" stroke="white" stroke-width="3" stroke-linecap="round"/>
+    <line x1="200" y1="268" x2="210" y2="280" stroke="white" stroke-width="3" stroke-linecap="round"/>
+    <line x1="256" y1="256" x2="256" y2="270" stroke="white" stroke-width="3" stroke-linecap="round"/>
+    <line x1="312" y1="268" x2="302" y2="280" stroke="white" stroke-width="3" stroke-linecap="round"/>
+    <line x1="344" y1="295" x2="336" y2="305" stroke="white" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- Needle -->
+    <line x1="256" y1="310" x2="195" y2="282" stroke="#0070F3" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="256" cy="310" r="5" fill="white"/>
+
+    <!-- Down arrow (left of triangle base) -->
+    <g transform="translate(70, 380)">
+      <path d="M 15 0 L 15 24 L 7 16 M 15 24 L 23 16" fill="none" stroke="#0070F3" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <!-- Up arrow (right of triangle base) -->
+    <g transform="translate(398, 364)">
+      <path d="M 15 24 L 15 0 L 7 8 M 15 0 L 23 8" fill="none" stroke="#0070F3" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <!-- Signal waves (top right) -->
+    <g transform="translate(340, 160)">
+      <path d="M 0 20 Q 12 10 24 20" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+      <path d="M -4 28 Q 12 14 28 28" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+    </g>
+  </g>
+
+  <!-- Version badge -->
+  <g transform="translate(396, 44)">
+    <rect x="0" y="0" width="80" height="28" rx="14" fill="#0070F3"/>
+    <text x="40" y="19" text-anchor="middle" fill="white" font-family="-apple-system, SF Pro Text, Helvetica, Arial" font-size="13" font-weight="600">v2.0</text>
+  </g>
+</svg>
