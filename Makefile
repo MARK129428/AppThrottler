@@ -65,7 +65,8 @@ PLIST
             "$SRC_DIR/HTTPInspectorView.swift" \
             "$SRC_DIR/Theme.swift" \
             "$SRC_DIR/ServerManager.swift" \
-            "$SRC_DIR/ProxyServer.swift"
+            "$SRC_DIR/ProxyServer.swift" \
+            "$SRC_DIR/ToastView.swift"
 
         echo "✅ Build succeeded: $APP_BUNDLE"
         ;;

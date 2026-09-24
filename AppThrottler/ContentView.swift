@@ -13,6 +13,7 @@ struct ContentView: View {
     @StateObject private var httpInspector = HTTPInspector()
     @StateObject private var serverManager = ServerManager()
     @StateObject private var proxyServer = ProxyServer()
+    @StateObject private var toastManager = ToastManager()
     @EnvironmentObject var themeManager: ThemeManager
     private var theme: AppTheme { themeManager.currentTheme }
 
@@ -78,6 +79,31 @@ struct ContentView: View {
             List(filteredApps, selection: $selectedApp) { app in
                 AppRow(app: app, throttleManager: throttleManager)
                     .tag(app)
+                    .contextMenu {
+                        Button {
+                            selectedApp = app
+                            selectedTab = .presets
+                        } label: {
+                            Label("限速此应用", systemImage: "bolt.shield")
+                        }
+                        if throttleManager.isThrottled(pid: app.pid) {
+                            Button(role: .destructive) {
+                                Task {
+                                    await throttleManager.removeThrottle(app: app)
+                                    toastManager.success("已解除 \(app.name) 的限速")
+                                }
+                            } label: {
+                                Label("解除限速", systemImage: "bolt.slash")
+                            }
+                        }
+                        Divider()
+                        Button {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString("\(app.name) (PID: \(app.pid))", forType: .string)
+                        } label: {
+                            Label("复制进程信息", systemImage: "doc.on.doc")
+                        }
+                    }
             }
             .listStyle(.sidebar)
             .navigationTitle("应用")
@@ -132,11 +158,35 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .refreshProcesses)) { _ in
             processManager.refresh()
         }
-        .alert("操作结果", isPresented: $throttleManager.showResultAlert) {
-            Button("好的") { throttleManager.showResultAlert = false }
-        } message: {
-            Text(throttleManager.resultMessage)
+        .overlay {
+            ToastOverlay(toastManager: toastManager, theme: theme)
+                .allowsHitTesting(true)
         }
+        .onChange(of: throttleManager.showResultAlert) { _, newValue in
+            if newValue {
+                let msg = throttleManager.resultMessage
+                let isError = msg.contains("失败") || msg.contains("错误")
+                if isError {
+                    toastManager.error(msg)
+                } else {
+                    toastManager.success(msg)
+                }
+                throttleManager.showResultAlert = false
+            }
+        }
+        .onChange(of: faultInjector.showResult) { _, newValue in
+            if newValue {
+                let msg = faultInjector.resultMessage
+                let isError = msg.contains("失败")
+                if isError {
+                    toastManager.error(msg)
+                } else {
+                    toastManager.success(msg)
+                }
+                faultInjector.showResult = false
+            }
+        }
+        .environmentObject(toastManager)
     }
 
     // MARK: - Detail View
@@ -144,6 +194,13 @@ struct ContentView: View {
     @ViewBuilder
     private func detailView(app: AppProcess) -> some View {
         VStack(spacing: 0) {
+            // Loading banner
+            if throttleManager.isApplying {
+                ThrottleLoadingView(theme: theme)
+                    .frame(maxWidth: .infinity)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
             // Tab bar as segmented control (native macOS style)
             Picker("功能", selection: $selectedTab) {
                 ForEach(RightTab.allCases) { tab in

@@ -71,6 +71,7 @@ SOURCES=(
     "$SRC_DIR/Theme.swift"
     "$SRC_DIR/ServerManager.swift"
     "$SRC_DIR/ProxyServer.swift"
+    "$SRC_DIR/ToastView.swift"
 )
 
 # Copy icon if available
