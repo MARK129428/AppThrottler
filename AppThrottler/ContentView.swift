@@ -109,7 +109,7 @@ struct ContentView: View {
             ToolbarItem(placement: .automatic) {
                 if !throttleManager.throttledPIDs.isEmpty {
                     Button {
-                        throttleManager.removeAllThrottles()
+                        Task { await throttleManager.removeAllThrottles() }
                     } label: {
                         Label("清除全部限速", systemImage: "xmark.circle.fill")
                     }
@@ -120,7 +120,7 @@ struct ContentView: View {
             ToolbarItem(placement: .automatic) {
                 if let app = selectedApp, throttleManager.isThrottled(pid: app.pid) {
                     Button {
-                        throttleManager.removeThrottle(app: app)
+                        Task { await throttleManager.removeThrottle(app: app) }
                     } label: {
                         Label("解除限速", systemImage: "bolt.slash")
                     }
@@ -307,7 +307,7 @@ struct ManualSettingsView: View {
                 HStack {
                     Button {
                         let config = buildConfig()
-                        throttleManager.applyThrottle(app: app, config: config)
+                        Task { await throttleManager.applyThrottle(app: app, config: config) }
                     } label: {
                         Label("应用限速", systemImage: "bolt.shield.fill")
                             .frame(maxWidth: .infinity)
@@ -408,7 +408,7 @@ struct PresetsView: View {
 
                         ForEach(profiles) { profile in
                             Button {
-                                throttleManager.applyProfile(app: app, profile: profile)
+                                Task { await throttleManager.applyProfile(app: app, profile: profile) }
                             } label: {
                                 HStack(spacing: 10) {
                                     Image(systemName: profile.icon)
@@ -633,7 +633,7 @@ struct ProfilesView: View {
                             }
                             Spacer()
                             Button("应用") {
-                                throttleManager.applyThrottle(app: app, config: profile.config)
+                                Task { await throttleManager.applyThrottle(app: app, config: profile.config) }
                             }
                             .font(.caption).buttonStyle(.bordered)
                         }
@@ -1015,7 +1015,7 @@ struct FaultInjectionView: View {
             Text("故障注入").font(.headline)
             Spacer()
             if !injector.activeFaults.isEmpty {
-                Button("全部停用") { injector.deactivateAll() }
+                Button("全部停用") { Task { await injector.deactivateAll() } }
                     .font(.caption).buttonStyle(.bordered).tint(theme.error)
             }
         }

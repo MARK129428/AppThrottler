@@ -117,7 +117,7 @@ class ScenarioEngine: ObservableObject {
 
         // Remove throttle on stop
         if let app = targetApp {
-            throttleManager.removeThrottle(app: app)
+            Task { await throttleManager.removeThrottle(app: app) }
         }
     }
 
@@ -138,7 +138,7 @@ class ScenarioEngine: ObservableObject {
 
                 // Apply the step config
                 if let app = targetApp {
-                    throttleManager.applyThrottle(app: app, config: step.config)
+                    await throttleManager.applyThrottle(app: app, config: step.config)
                 }
 
                 // Wait for duration
@@ -152,7 +152,7 @@ class ScenarioEngine: ObservableObject {
 
         // Done
         if !Task.isCancelled, let app = targetApp {
-            throttleManager.removeThrottle(app: app)
+            await throttleManager.removeThrottle(app: app)
         }
         isRunning = false
     }

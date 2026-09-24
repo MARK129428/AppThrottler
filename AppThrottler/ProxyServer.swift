@@ -130,8 +130,8 @@ class ProxyServer: ObservableObject {
     // MARK: - Throttle Control
 
     func throttleDevice(_ ip: String, downloadKbps: Int, uploadKbps: Int, latencyMs: Int = 0, packetLoss: Double = 0) {
-        // Create dnctl pipes specific to this device IP
-        let downPipe = 200 + (abs(ip.hashValue) % 800)
+        // Create dnctl pipes specific to this device IP (range 500-899, avoids ThrottleManager 100-499)
+        let downPipe = 500 + (abs(ip.hashValue) % 399) * 2
         let upPipe = downPipe + 1
 
         var cfg = "bw \(downloadKbps > 0 ? "\(downloadKbps)Kbit/s" : "1Gbit/s")"

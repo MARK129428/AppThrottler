@@ -50,44 +50,41 @@ class FaultInjector: ObservableObject {
     @Published var showResult = false
     @Published var resultMessage = ""
 
+    private let executor = PrivilegedExecutor.shared
+
     func isActive(_ fault: FaultType) -> Bool {
         activeFaults.contains(fault)
     }
 
     func toggle(fault: FaultType) {
-        if isActive(fault) {
-            deactivate(fault: fault)
-        } else {
-            activate(fault: fault)
+        Task {
+            if isActive(fault) {
+                await deactivate(fault: fault)
+            } else {
+                await activate(fault: fault)
+            }
         }
     }
 
-    func activate(fault: FaultType) {
+    func activate(fault: FaultType) async {
         var script = ""
 
         switch fault {
         case .dnsTimeout:
-            // Block DNS port 53 traffic with high delay
             script = """
-            # Add PF rule to drop DNS traffic (simulating timeout)
             echo 'block drop out quick proto udp from any to any port 53' | pfctl -a appthrottler/fault -f - 2>/dev/null || \
             (echo 'anchor "appthrottler/fault"' | pfctl -a appthrottler -f - 2>/dev/null; \
              echo 'block drop out quick proto udp from any to any port 53' | pfctl -a appthrottler/fault -f -)
             """
-
         case .dnsFail:
-            // Return NXDOMAIN via /etc/hosts override
             script = """
-            # Backup hosts file and add poison entries
             cp /etc/hosts /etc/hosts.appthrottler.bak 2>/dev/null || true
             echo '## AppThrottler DNS Fail
             0.0.0.0 *
             255.255.255.255 *' >> /etc/hosts
             dscacheutil -flushcache
             """
-
         case .dnsHijack:
-            // Redirect DNS to localhost
             script = """
             cp /etc/hosts /etc/hosts.appthrottler.bak 2>/dev/null || true
             echo '## AppThrottler DNS Hijack
@@ -99,17 +96,13 @@ class FaultInjector: ObservableObject {
             127.0.0.1 cloudflare.com' >> /etc/hosts
             dscacheutil -flushcache
             """
-
         case .tcpReset:
-            // Use PF to send RST on matching TCP connections
             script = """
             echo 'block return out quick proto tcp from any to any' | pfctl -a appthrottler/fault -f - 2>/dev/null || \
             (echo 'anchor "appthrottler/fault"' | pfctl -a appthrottler -f - 2>/dev/null; \
              echo 'block return out quick proto tcp from any to any' | pfctl -a appthrottler/fault -f -)
             """
-
         case .sslError:
-            // Block HTTPS port 443
             script = """
             echo 'block drop out quick proto tcp from any to any port 443' | pfctl -a appthrottler/fault -f - 2>/dev/null || \
             (echo 'anchor "appthrottler/fault"' | pfctl -a appthrottler -f - 2>/dev/null; \
@@ -117,7 +110,7 @@ class FaultInjector: ObservableObject {
             """
         }
 
-        let result = runPrivileged(script, prompt: "AppThrottler: 启用故障注入 - \(fault.rawValue)")
+        let result = await executor.run(script, prompt: "AppThrottler: 启用故障注入 - \(fault.rawValue)")
         if result.success {
             activeFaults.insert(fault)
             resultMessage = "已启用: \(fault.rawValue)"
@@ -127,7 +120,7 @@ class FaultInjector: ObservableObject {
         showResult = true
     }
 
-    func deactivate(fault: FaultType) {
+    func deactivate(fault: FaultType) async {
         var script = ""
 
         switch fault {
@@ -143,7 +136,7 @@ class FaultInjector: ObservableObject {
             """
         }
 
-        let result = runPrivileged(script, prompt: "AppThrottler: 停用故障注入 - \(fault.rawValue)")
+        let result = await executor.run(script, prompt: "AppThrottler: 停用故障注入 - \(fault.rawValue)")
         if result.success {
             activeFaults.remove(fault)
             resultMessage = "已停用: \(fault.rawValue)"
@@ -153,7 +146,7 @@ class FaultInjector: ObservableObject {
         showResult = true
     }
 
-    func deactivateAll() {
+    func deactivateAll() async {
         let script = """
         pfctl -a appthrottler/fault -F rules 2>/dev/null || true
         if [ -f /etc/hosts.appthrottler.bak ]; then
@@ -162,24 +155,20 @@ class FaultInjector: ObservableObject {
         fi
         dscacheutil -flushcache
         """
-        _ = runPrivileged(script, prompt: "AppThrottler: 停用所有故障注入")
+        _ = await executor.run(script, prompt: "AppThrottler: 停用所有故障注入")
         activeFaults.removeAll()
     }
 
-    private func runPrivileged(_ script: String, prompt: String) -> (success: Bool, error: String?) {
-        let escaped = script.replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-        let appleScript = """
-        do shell script "\(escaped)" with administrator privileges with prompt "\(prompt)"
-        """
-        var error: NSDictionary?
-        if let scriptObj = NSAppleScript(source: appleScript) {
-            let _ = scriptObj.executeAndReturnError(&error)
-            if let err = error {
-                return (false, err[NSAppleScript.errorMessage] as? String ?? "denied")
-            }
-            return (true, nil)
-        }
-        return (false, "Cannot execute")
+    // Cleanup on app quit
+    func cleanupAll() async {
+        _ = await executor.run("""
+        pfctl -a appthrottler/fault -F rules 2>/dev/null || true
+        if [ -f /etc/hosts.appthrottler.bak ]; then
+            cp /etc/hosts.appthrottler.bak /etc/hosts
+            rm /etc/hosts.appthrottler.bak
+        fi
+        dscacheutil -flushcache
+        """, prompt: "AppThrottler: 清理故障注入")
+        activeFaults.removeAll()
     }
 }

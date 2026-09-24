@@ -21,6 +21,8 @@ class NSAppDelegateStub: NSObject, NSApplicationDelegate {}
 
 class AppThrottlerDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow?
+    private var throttleManager: ThrottleManager?
+    private var faultInjector: FaultInjector?
 
     @MainActor
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -30,6 +32,11 @@ class AppThrottlerDelegate: NSObject, NSApplicationDelegate {
         } else {
             NSApp.appearance = nil
         }
+
+        let tm = ThrottleManager()
+        let fi = FaultInjector()
+        self.throttleManager = tm
+        self.faultInjector = fi
 
         let contentView = ContentView()
             .environmentObject(themeManager)
@@ -49,12 +56,29 @@ class AppThrottlerDelegate: NSObject, NSApplicationDelegate {
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 
-        // Setup menu bar
         setupMenuBar()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        // Cleanup all PF rules, dnctl pipes, and hosts modifications
+        let sem = DispatchSemaphore(value: 0)
+        Task { @MainActor in
+            await throttleManager?.cleanupAll()
+            await faultInjector?.cleanupAll()
+            // Also flush all appthrottler anchors
+            _ = await PrivilegedExecutor.shared.run("""
+            pfctl -a appthrottler -F all 2>/dev/null || true
+            pfctl -a appthrottler/fault -F all 2>/dev/null || true
+            pfctl -a appthrottler/proxy -F all 2>/dev/null || true
+            dnctl flush 2>/dev/null || true
+            """, prompt: "AppThrottler: 清理退出")
+            sem.signal()
+        }
+        sem.wait()
     }
 
     private func setupMenuBar() {
